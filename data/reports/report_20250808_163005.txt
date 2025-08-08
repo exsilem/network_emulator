@@ -1,0 +1,7 @@
+Traffic emulator report
+Generated: 2025-08-08T16:30:05.953539
+
+Total packets: 40
+Lost packets: 0
+Average scheduled ms (delivered): 98.775
+Average actual ms (delivered): 99.767

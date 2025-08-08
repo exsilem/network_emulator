@@ -1,43 +1,24 @@
 import json
-import logging
 from dataclasses import dataclass
-from typing import Tuple
-
 
 @dataclass
 class ChannelConfig:
+    server_ip: str
     encoder_port: int
     decoder_port: int
-    loss_probability: float
-    delay_range: Tuple[float, float]
-    report_path: str
+    packet_loss: float
+    delay_min_ms: float
+    delay_max_ms: float
 
-    @staticmethod
-    def load(file_path: str) -> "ChannelConfig":
-        """
-        Загружает конфигурацию из JSON-файла.
-        При ошибках — логирует их и выбрасывает исключение.
-        """
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            logging.info(f"Конфигурация загружена из {file_path}")
-
-            return ChannelConfig(
-                encoder_port=data.get("encoder_port", 8888),
-                decoder_port=data.get("decoder_port", 9999),
-                loss_probability=data.get("loss_probability", 0.1),
-                delay_range=tuple(data.get("delay_range", [0.01, 0.05])),
-                report_path=data.get("report_path", "data/reports/report.txt")
-            )
-
-        except FileNotFoundError:
-            logging.error(f"Файл конфигурации {file_path} не найден")
-            raise
-        except json.JSONDecodeError as e:
-            logging.error(f"Ошибка разбора JSON в {file_path}: {e}")
-            raise
-        except Exception as e:
-            logging.error(f"Неожиданная ошибка при загрузке конфигурации: {e}")
-            raise
+    @classmethod
+    def load_json(cls, path: str = "config.json"):
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls(
+            server_ip=data.get("server_ip", "127.0.0.1"),
+            encoder_port=int(data.get("encoder_port", 8888)),
+            decoder_port=int(data.get("decoder_port", 9999)),
+            packet_loss=float(data.get("packet_loss", 0.0)),
+            delay_min_ms=float(data.get("delay_min_ms", 50)),
+            delay_max_ms=float(data.get("delay_max_ms", 150))
+        )

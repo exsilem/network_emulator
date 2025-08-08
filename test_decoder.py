@@ -1,23 +1,15 @@
-import socket
-import time
-
-SERVER_IP = "127.0.0.1"
-DECODER_PORT = 9999
-NUM_PACKETS = 20
-DELAY_BETWEEN_PACKETS = 0.2
-
-def send_packets():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    print(f"[TEST DECODER] Отправка {NUM_PACKETS} пакетов на порт {DECODER_PORT}")
-
-    for i in range(NUM_PACKETS):
-        packet = f"DEC_PKT_{i}".encode()
-        sock.sendto(packet, (SERVER_IP, DECODER_PORT))
-        print(f"[TEST DECODER] Отправлен пакет: {packet.decode()}")
-        time.sleep(DELAY_BETWEEN_PACKETS)
-
-    sock.close()
-    print("[TEST DECODER] Тест завершён")
-
-if __name__ == "__main__":
-    send_packets()
+import socket, time
+cfg = {
+    'server_ip': '127.0.0.1',
+    'decoder_port': 9999,
+    'num': 20,
+    'interval': 0.12
+}
+def main():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    for i in range(cfg['num']):
+        pkt = f'DEC_PKT_{i}'.encode()
+        s.sendto(pkt, (cfg['server_ip'], cfg['decoder_port']))
+        time.sleep(cfg['interval'])
+    s.close()
+if __name__=='__main__': main()

@@ -1,34 +1,44 @@
-import logging
+import time
+import os
+import signal
+import sys
 from config import ChannelConfig
+from monitor import TrafficMonitor
 from server import PacketServer
-from monitor import PacketMonitor
-
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S"
-    )
+    cfg = ChannelConfig.load_json('config.json')
+    monitor = TrafficMonitor()
 
-    config = ChannelConfig.load("config.json")
+    enc = PacketServer(cfg.server_ip, cfg.encoder_port, cfg, monitor, role='encoder')
+    dec = PacketServer(cfg.server_ip, cfg.decoder_port, cfg, monitor, role='decoder')
 
-    monitor = PacketMonitor(config)
-    server = PacketServer(config, monitor)
+    enc.start()
+    dec.start()
+
+    stop = False
+    def handler(sig, frame):
+        nonlocal stop
+        print('\n[MAIN] Ctrl+C received — shutting down...')
+        stop = True
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
 
     try:
-        logging.info("Запуск сервера. Нажмите Ctrl+C для остановки.")
-        server.start()
-        while server.is_alive():
-            server.join(timeout=1)
-    except KeyboardInterrupt:
-        logging.info("Остановка сервера по Ctrl+C...")
-        server.stop()
-        server.join()
+        while not stop:
+            time.sleep(0.2)
     finally:
-        monitor.save_report()
-        logging.info("Работа завершена.")
+        enc.stop()
+        dec.stop()
+        enc.join(timeout=2.0)
+        dec.join(timeout=2.0)
 
+        csv_path = monitor.save_csv(path=os.path.join('data','reports','logs.csv'))
+        txt_path = monitor.save_report()
+        png_path = monitor.plot_delay_chart(path=os.path.join('data','reports','delay_chart.png'))
+        print('[MAIN] Saved:', csv_path, txt_path, png_path)
+        print('[MAIN] Bye.')
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

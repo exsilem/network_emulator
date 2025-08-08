@@ -1,7 +1,0 @@
-asyncio
-scipy
-numpy
-pandas
-matplotlib
-seaborn
-argparse
