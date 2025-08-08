@@ -4,11 +4,10 @@ import time
 SERVER_IP = "127.0.0.1"
 DECODER_PORT = 9999
 NUM_PACKETS = 20
-DELAY_BETWEEN_PACKETS = 0.2  # секунды
+DELAY_BETWEEN_PACKETS = 0.2
 
 def send_packets():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
     print(f"[TEST DECODER] Отправка {NUM_PACKETS} пакетов на порт {DECODER_PORT}")
 
     for i in range(NUM_PACKETS):
