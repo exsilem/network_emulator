@@ -7,15 +7,20 @@ from datetime import datetime
 
 class TrafficMonitor:
     def __init__(self):
-        # records: list of dicts with keys: id, scheduled_ms, actual_ms, lost (bool), ts
+        # records: list of dicts with keys: id, scheduled_ms, actual_ms, lost (bool), ts, ...
         self.records = []
 
-    def log_packet(self, packet_id, scheduled_ms, actual_ms, lost=False):
+    def log_packet(self, packet_id, scheduled_ms, actual_ms, lost=False,
+                   propagation_ms=None, jitter_ms=None, transmission_ms=None, queued_ms=None):
         self.records.append({
             "packet_id": packet_id,
             "scheduled_ms": scheduled_ms,
             "actual_ms": actual_ms,
             "lost": bool(lost),
+            "propagation_ms": propagation_ms,
+            "jitter_ms": jitter_ms,
+            "transmission_ms": transmission_ms,
+            "queued_ms": queued_ms,
             "ts": datetime.utcnow().isoformat()
         })
 
@@ -23,8 +28,10 @@ class TrafficMonitor:
         if path is None:
             path = os.path.join('data', 'reports', 'logs.csv')
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        fieldnames = ['ts','packet_id','scheduled_ms','actual_ms','lost',
+                      'propagation_ms','jitter_ms','transmission_ms','queued_ms']
         with open(path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=['ts','packet_id','scheduled_ms','actual_ms','lost'])
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for r in self.records:
                 writer.writerow(r)
@@ -51,7 +58,6 @@ class TrafficMonitor:
         if path is None:
             path = os.path.join('data', 'reports', 'delay_chart.png')
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        # use only delivered packets for plotting
         delivered = [r for r in self.records if not r['lost']]
         if not delivered:
             return None

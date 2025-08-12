@@ -1,8 +1,18 @@
 {
-    "server_ip": "127.0.0.1",
-    "encoder_port": 8888,
-    "decoder_port": 9999,
-    "packet_loss": 0.5,
-    "delay_min_ms": 50,
-    "delay_max_ms": 150
+    "packet_loss": 0.05,
+    "delay_min_ms": 30.0,
+    "delay_max_ms": 80.0,
+
+    "delay_distribution_type": "beta",
+    "delay_param1": 2.0,
+    "delay_param2": 5.0,
+    "delay_distribution_file": null,
+
+    "jitter_distribution_type": "normal",
+    "jitter_mu_ms": 0.0,
+    "jitter_sigma_ms": 5.0,
+    "jitter_distribution_file": null,
+
+    "bandwidth_bps": 5000000,
+    "bandwidth_distribution_file": null
 }
