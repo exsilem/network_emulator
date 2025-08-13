@@ -1,7 +1,4 @@
 import time
-import os
-import signal
-import sys
 from config import ChannelConfig
 from monitor import TrafficMonitor
 from server import PacketServer
@@ -10,35 +7,45 @@ def main():
     cfg = ChannelConfig.load_json('config.json')
     monitor = TrafficMonitor()
 
-    enc = PacketServer(cfg.server_ip, cfg.encoder_port, cfg, monitor, role='encoder')
-    dec = PacketServer(cfg.server_ip, cfg.decoder_port, cfg, monitor, role='decoder')
+    # Encoder → Decoder
+    enc = PacketServer(
+        cfg.server_ip,
+        cfg.encoder_port,
+        cfg.server_ip,
+        cfg.decoder_port,
+        cfg,
+        monitor,
+        role='encoder'
+    )
+
+    # Decoder → Encoder
+    dec = PacketServer(
+        cfg.server_ip,
+        cfg.decoder_port,
+        cfg.server_ip,
+        cfg.encoder_port,
+        cfg,
+        monitor,
+        role='decoder'
+    )
 
     enc.start()
     dec.start()
 
-    stop = False
-    def handler(sig, frame):
-        nonlocal stop
-        print('\n[MAIN] Ctrl+C received — shutting down...')
-        stop = True
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
     try:
-        while not stop:
-            time.sleep(0.2)
-    finally:
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n[MAIN] Stopping servers...")
         enc.stop()
         dec.stop()
-        enc.join(timeout=2.0)
-        dec.join(timeout=2.0)
-
-        csv_path = monitor.save_csv(path=os.path.join('data','reports','logs.csv'))
-        txt_path = monitor.save_report()
-        png_path = monitor.plot_delay_chart(path=os.path.join('data','reports','delay_chart.png'))
-        print('[MAIN] Saved:', csv_path, txt_path, png_path)
-        print('[MAIN] Bye.')
+        enc.join()
+        dec.join()
+        print("[MAIN] Saving reports...")
+        monitor.save_csv()
+        monitor.save_report()
+        monitor.plot_delay_chart()
+        print("[MAIN] Done. Reports are in data/reports/")
 
 if __name__ == '__main__':
     main()

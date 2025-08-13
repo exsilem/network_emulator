@@ -7,7 +7,7 @@ from datetime import datetime
 
 class TrafficMonitor:
     def __init__(self):
-        # records: list of dicts with keys: id, scheduled_ms, actual_ms, lost (bool), ts, ...
+        # records: list of dicts with keys: packet_id, scheduled_ms, actual_ms, lost (bool), ts, optional components
         self.records = []
 
     def log_packet(self, packet_id, scheduled_ms, actual_ms, lost=False,
@@ -26,7 +26,7 @@ class TrafficMonitor:
 
     def save_csv(self, path=None):
         if path is None:
-            path = os.path.join('data', 'reports', 'logs.csv')
+            path = os.path.join('data', 'reports', 'logs_' + datetime.utcnow().strftime('%Y%m%d_%H%M%S') + '.csv')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         fieldnames = ['ts','packet_id','scheduled_ms','actual_ms','lost',
                       'propagation_ms','jitter_ms','transmission_ms','queued_ms']
@@ -34,7 +34,9 @@ class TrafficMonitor:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for r in self.records:
-                writer.writerow(r)
+                # ensure all fields present
+                out = {k: r.get(k, '') for k in fieldnames}
+                writer.writerow(out)
         return path
 
     def save_report(self, path=None):
@@ -43,21 +45,34 @@ class TrafficMonitor:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         total = len(self.records)
         lost = sum(1 for r in self.records if r['lost'])
-        avg_scheduled = (sum(r['scheduled_ms'] for r in self.records if not r['lost']) / max(1, total - lost)) if total - lost > 0 else 0
-        avg_actual = (sum(r['actual_ms'] for r in self.records if not r['lost']) / max(1, total - lost)) if total - lost > 0 else 0
+        delivered = [r for r in self.records if not r['lost']]
+        avg_scheduled = (sum(r['scheduled_ms'] for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+        avg_actual = (sum(r['actual_ms'] for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+        # breakdown averages
+        avg_trans = (sum(r.get('transmission_ms') or 0.0 for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+        avg_queue = (sum(r.get('queued_ms') or 0.0 for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+        avg_jitter = (sum(r.get('jitter_ms') or 0.0 for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+        avg_prop = (sum(r.get('propagation_ms') or 0.0 for r in delivered) / max(1, len(delivered))) if delivered else 0.0
+
         with open(path, 'w', encoding='utf-8') as f:
             f.write('Traffic emulator report\n')
             f.write('Generated: ' + datetime.utcnow().isoformat() + '\n\n')
             f.write(f'Total packets: {total}\n')
             f.write(f'Lost packets: {lost}\n')
             f.write(f'Average scheduled ms (delivered): {avg_scheduled:.3f}\n')
-            f.write(f'Average actual ms (delivered): {avg_actual:.3f}\n')
+            f.write(f'Average actual ms (delivered): {avg_actual:.3f}\n\n')
+            f.write('Average breakdown (ms) for delivered packets:\n')
+            f.write(f'  transmission_ms: {avg_trans:.3f}\n')
+            f.write(f'  queued_ms:       {avg_queue:.3f}\n')
+            f.write(f'  jitter_ms:       {avg_jitter:.3f}\n')
+            f.write(f'  propagation_ms:  {avg_prop:.3f}\n')
         return path
 
     def plot_delay_chart(self, path=None):
         if path is None:
-            path = os.path.join('data', 'reports', 'delay_chart.png')
+            path = os.path.join('data', 'reports', 'delay_chart_' + datetime.utcnow().strftime('%Y%m%d_%H%M%S') + '.png')
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        # use only delivered packets for plotting
         delivered = [r for r in self.records if not r['lost']]
         if not delivered:
             return None
