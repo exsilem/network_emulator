@@ -1,7 +1,7 @@
 import socket, time
 cfg = {
     'server_ip': '127.0.0.1',
-    'decoder_port': 9999,
+    'decoder_port': 5002,  # <-- ДОЛЖЕН совпадать с config.json
     'num': 20,
     'interval': 0.12
 }
